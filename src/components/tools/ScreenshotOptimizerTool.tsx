@@ -1,0 +1,117 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Dropzone } from '../common/Dropzone';
+import { ScreenshotOptimizerOptions } from '@/types';
+import { screenshotOptimizer, formatBytes } from '@/lib/imageUtils';
+import { Camera, Download, Sparkles, RefreshCw } from 'lucide-react';
+
+export const ScreenshotOptimizerTool: React.FC = () => {
+  const [file, setFile] = useState<File | null>(null);
+  const [options, setOptions] = useState<ScreenshotOptimizerOptions>({
+    padding: 60,
+    borderRadius: 16,
+    shadowBlur: 30,
+    bgGradient: 'blue-purple',
+    outputFormat: 'image/webp'
+  });
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [result, setResult] = useState<{ url: string; size: number } | null>(null);
+
+  const processScreenshot = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    try {
+      const res = await screenshotOptimizer(file, options);
+      setResult(res);
+    } catch (err) {
+      console.error('Screenshot error:', err);
+      alert('Error optimizing screenshot.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <Camera className="h-6 w-6 text-blue-600" />
+          Screenshot Optimizer & Mockup Generator
+        </h1>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Targeted for developers, bloggers & website owners. Add gradient padding, drop shadows, rounded corners, and compress to WebP!
+        </p>
+      </div>
+
+      {!file ? (
+        <Dropzone onFilesAdded={(files) => setFile(files[0])} multiple={false} label="Upload Screenshot" />
+      ) : (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Padding ({options.padding}px)</label>
+              <input type="range" min={20} max={120} value={options.padding} onChange={(e) => setOptions({ ...options, padding: Number(e.target.value) })} className="w-full" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Corner Radius ({options.borderRadius}px)</label>
+              <input type="range" min={0} max={30} value={options.borderRadius} onChange={(e) => setOptions({ ...options, borderRadius: Number(e.target.value) })} className="w-full" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Shadow Intensity</label>
+              <input type="range" min={0} max={60} value={options.shadowBlur} onChange={(e) => setOptions({ ...options, shadowBlur: Number(e.target.value) })} className="w-full" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Gradient Theme</label>
+              <select
+                value={options.bgGradient}
+                onChange={(e) => setOptions({ ...options, bgGradient: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 px-2.5 text-xs font-semibold text-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              >
+                <option value="blue-purple">Blue to Purple</option>
+                <option value="sunset">Sunset Orange & Pink</option>
+                <option value="emerald">Emerald & Cyan</option>
+                <option value="midnight">Midnight Charcoal</option>
+                <option value="cyber">Cyberpunk Neon</option>
+              </select>
+            </div>
+          </div>
+
+          <button
+            disabled={isProcessing}
+            onClick={processScreenshot}
+            className="w-full rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+          >
+            {isProcessing ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            <span>Beautify & Optimize Screenshot</span>
+          </button>
+        </div>
+      )}
+
+      {result && (
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50/40 p-6 dark:border-emerald-800/60 dark:bg-emerald-950/20">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Beautified Screenshot Ready</h3>
+              <p className="text-xs text-slate-500">{formatBytes(result.size)}</p>
+            </div>
+            <a
+              href={result.url}
+              download="Beautified_Screenshot.webp"
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-emerald-700"
+            >
+              <Download className="h-4 w-4" /> Download WebP Screenshot
+            </a>
+          </div>
+          <div className="overflow-hidden rounded-2xl bg-slate-950 p-4 flex justify-center">
+            <img src={result.url} alt="Screenshot result" className="max-h-96 object-contain rounded-xl" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
